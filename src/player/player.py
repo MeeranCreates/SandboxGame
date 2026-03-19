@@ -1,7 +1,7 @@
 import pygame
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, screen, pos: tuple = (0, 0)):
+    def __init__(self, screen,blocks, pos: tuple = (0, 0),):
         super().__init__()
 
         # args
@@ -20,10 +20,10 @@ class Player(pygame.sprite.Sprite):
         self.image.fill((255, 0, 0))
         self.rect = self.image.get_rect(topleft=pos)
 
-        # temp ground (collision object)
-        self.collision_obj = pygame.Surface((200, 100))
-        self.collision_obj.fill((0, 255, 0))
-        self.collision_rect = self.collision_obj.get_rect(topleft=(200, 300))
+        # collision object
+        self.blocks = blocks
+
+
 
     def update(self):
         keys = pygame.key.get_pressed()
@@ -54,15 +54,17 @@ class Player(pygame.sprite.Sprite):
         self.check_collision()
 
     def check_collision(self):
-        if self.rect.colliderect(self.collision_rect):
-            if self.velocity.y > 0:  # falling
-                self.rect.bottom = self.collision_rect.top
-                self.position.y = self.rect.y
-                self.velocity.y = 0
-                self.touching_ground = True
-        else:
-            self.touching_ground = False
+        self.touching_ground = False
+
+        for block_surface, block_pos in self.blocks:
+            block_rect = pygame.Rect(block_pos[0], block_pos[1], 32, 32)
+
+            if self.rect.colliderect(block_rect):
+                if self.velocity.y > 0:  # falling
+                    self.rect.bottom = block_rect.top
+                    self.position.y = self.rect.y
+                    self.velocity.y = 0
+                    self.touching_ground = True
 
     def draw(self):
         self.screen.blit(self.image, self.rect)
-        self.screen.blit(self.collision_obj, self.collision_rect)

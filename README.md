@@ -2,16 +2,16 @@
 
 A 2D sandbox game built using Python and Pygame.
 
-#  Features
+##  Features
 - Player movement
 - World generation (WIP)
 - Block placement & breaking (coming soon)
 
-# Tech
+## Tech
 - Python
 - Pygame
 
-# ▶️ How to Run
+## ▶️ How to Run
 ```bash
 pip install -r requirements.txt
 python src/main.py

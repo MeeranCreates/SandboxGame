@@ -16,8 +16,6 @@ class World:
             x = i * 32
             y = 500  # ground level
             self.blocks.append((self.dirt, (x, y)))
-            print(f"Generated block at: {(x, y)}")
-            print(self.blocks)
 
     def draw(self):
         for block, pos in self.blocks:

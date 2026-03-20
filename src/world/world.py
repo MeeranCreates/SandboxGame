@@ -14,8 +14,8 @@ class World:
 
     def generate(self):
         for x in range(100):
+            cloumb = []
             for y in range (20):
-                cloumb = []
                 if y > 15:  # simple ground layer        
                     cloumb.append(1) # 1 represents dirt block
             self.blocks.append(cloumb)

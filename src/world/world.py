@@ -1,4 +1,5 @@
 import pygame
+from noise import pnoise2,pnoise1
 
 class World:
     def __init__(self, screen):

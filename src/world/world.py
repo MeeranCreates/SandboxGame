@@ -13,10 +13,10 @@ class World:
         self.generate()
 
     def generate(self):
-        for x in range(100):
+        for x in range(25):
             cloumb = []
             for y in range (20):
-                if y > 15:  # simple ground layer        
+                if y > 10:  # simple ground layer        
                     cloumb.append(1) # 1 represents dirt block
             self.blocks.append(cloumb)
             

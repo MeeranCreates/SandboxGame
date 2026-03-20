@@ -21,7 +21,7 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
 
         # collision object
-        self.blocks = blocks
+        #self.blocks = blocks
 
 
 
@@ -51,7 +51,7 @@ class Player(pygame.sprite.Sprite):
         self.rect.topleft = (int(self.position.x), int(self.position.y))
 
         # collision check
-        self.check_collision()
+        # ----   self.check_collision() ------
 
     def check_collision(self):
         self.touching_ground = False

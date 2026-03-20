@@ -3,6 +3,7 @@ import pygame
 class World:
     def __init__(self, screen):
         self.screen = screen
+        self.block_size = 32
         self.blocks = []
 
         # block image
@@ -12,11 +13,20 @@ class World:
         self.generate()
 
     def generate(self):
-        for i in range(20):
-            x = i * 32
-            y = 500  # ground level
-            self.blocks.append((self.dirt, (x, y)))
+        for x in range(100):
+            for y in range (20):
+                cloumb = []
+                if y > 15:  # simple ground layer        
+                    cloumb.append(1) # 1 represents dirt block
+            self.blocks.append(cloumb)
+            
 
-    def draw(self):
-        for block, pos in self.blocks:
-            self.screen.blit(block, pos)
+        print(f"Generated world with {len(self.blocks)} blocks.")
+        print(self.blocks)
+
+    def draw(self,offset=pygame.math.Vector2(0, 0)):
+        for x, row in enumerate(self.blocks):
+            for y, block_type in enumerate(row):
+                if block_type == 1:  # dirt block
+                    block_pos = (x * self.block_size + offset.x, y * self.block_size + offset.y)
+                    self.screen.blit(self.dirt, block_pos)

@@ -15,6 +15,9 @@ class Game:
         self.world = World(self.screen)
         self.player = Player(self.screen, pos=(100, 100), blocks=self.world.blocks)
 
+        #Offset for spectating
+        self.offset = pygame.math.Vector2(0, 0)
+
     def run(self):
         self.world.generate()
         while self.running:
@@ -24,13 +27,24 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
 
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_a]:
+                self.offset.x += self.player.speed
+            if keys[pygame.K_d]:
+                self.offset.x -= self.player.speed
+            if keys[pygame.K_w]:
+                self.offset.y += self.player.speed
+            if keys[pygame.K_s]:
+                self.offset.y -= self.player.speed
+
             # update
             self.player.update()
 
             # draw
             self.screen.fill((0, 0, 0))
-            self.player.draw()
-            self.world.draw()
+            # --- Ignoring player for now ---
+            # self.player.draw()
+            self.world.draw(offset=self.offset)
             pygame.display.flip()
 
         pygame.quit()

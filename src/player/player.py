@@ -20,11 +20,8 @@ class Player(pygame.sprite.Sprite):
         self.image.fill((255, 0, 0))
         self.rect = self.image.get_rect(topleft=pos)
 
-        # collision object
-        #self.blocks = blocks
-
-
-
+        # collision 
+        
     def update(self):
         keys = pygame.key.get_pressed()
 

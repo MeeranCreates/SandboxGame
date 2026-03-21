@@ -46,8 +46,8 @@ class World:
         evaluation_counter = 0
 
         # --- BUILD HEIGHT MAP WITH PERLIN NOISE + BIOMES ---
-        scale = 0.05
-        amplitude = 6
+        scale = 0.01  # much smoother terrain
+        amplitude = 4
 
         for x in range(self.width):
             # base biome height
@@ -59,12 +59,25 @@ class World:
                 base = 10  # desert low
 
             # perlin noise gives smooth variation (-1 to 1)
-            noise_val = pnoise1(x * scale)
+            noise_val = pnoise1(x * scale + seed)
 
             height = int(base + noise_val * amplitude)
             height = max(5, min(self.height - 5, height))
 
             heights.append(height)
+
+        # --- SMOOTH HEIGHT DIFFERENCE (max step = 1) ---
+        for i in range(1, len(heights)):
+            if heights[i] - heights[i-1] > 1:
+                heights[i] = heights[i-1] + 1
+            elif heights[i] - heights[i-1] < -1:
+                heights[i] = heights[i-1] - 1
+
+        # --- EXTRA SMOOTHING (moving average) ---
+        smoothed = heights[:]
+        for i in range(2, len(heights) - 2):
+            smoothed[i] = int((heights[i-2] + heights[i-1] + heights[i] + heights[i+1] + heights[i+2]) / 5)
+        heights = smoothed
 
         # Build blocks
         for x in range(self.width):
@@ -78,11 +91,11 @@ class World:
                     diff_left = heights[x] - left
                     diff_right = heights[x] - right
 
-                    # create multi-block slopes (up to 5 blocks)
-                    if diff_left > 0 and diff_left <= 5 and y >= heights[x] - diff_left:
-                        col.append(4)  # left slope
-                    elif diff_right > 0 and diff_right <= 5 and y >= heights[x] - diff_right:
-                        col.append(5)  # right slope
+                    # single block slope only (clean + stable)
+                    if diff_left == 1 and y == heights[x] - 1:
+                        col.append(4)
+                    elif diff_right == 1 and y == heights[x] - 1:
+                        col.append(5)
                     else:
                         col.append(0)  # air
                 elif y == heights[x]:

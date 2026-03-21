@@ -1,6 +1,7 @@
 import pygame
 import math
 import random
+from noise import pnoise1
 
 # Placeholder Perlin noise function for hills
 def perlin_noise(x, scale=20, octaves=1, persistence=0.5, lacunarity=2.0, seed=0):
@@ -16,17 +17,17 @@ class World:
         self.height = 50
         self.blocks = []  # 2D list: self.blocks[x][y] = block type
 
-        # Block images
-        self.dirt = pygame.Surface((self.block_size, self.block_size))
-        self.dirt.fill((139, 69, 19))  # brown
+        # Block images dirt
+        self.grass_flat = pygame.image.load("assets/images/grass_flat.png").convert_alpha()
+        self.grass = self.grass_flat
+        self.dirt = pygame.image.load("assets/images/dirt.png").convert_alpha()
         # Placeholder slope textures (visual only)
-        self.slope_left = pygame.Surface((self.block_size, self.block_size))
-        self.slope_left.fill((120, 100, 80))
-        self.slope_right = pygame.Surface((self.block_size, self.block_size))
-        self.slope_right.fill((160, 120, 90))
+        self.grass_left_slope = pygame.image.load("assets/images/grass_left_slope.png").convert_alpha()
+        self.grass_right_slope = pygame.image.load("assets/images/grass_right_slope.png").convert_alpha()
         # Placeholder cave opening
         self.cave = pygame.Surface((self.block_size, self.block_size))
         self.cave.fill((40, 40, 40))
+        
 
         self.generate()
 
@@ -35,7 +36,7 @@ class World:
         base_height = 12
         ground_slope = 0.2  # how quickly ground trends up/down
         hill_amplitude = 3
-        cave_chance = 0.10  # chance for a cave opening at ground level
+        cave_chance = 0
         slope_visual_range = 1  # how many blocks to look left/right for slope
         seed = random.randint(0, 10000)
 
@@ -43,38 +44,49 @@ class World:
         heights = []
         current_height = base_height
         evaluation_counter = 0
+
+        # --- BUILD HEIGHT MAP WITH PERLIN NOISE + BIOMES ---
+        scale = 0.05
+        amplitude = 6
+
         for x in range(self.width):
-            # Every 10 blocks, adjust base height by ±1
-            if evaluation_counter >= 10:
-                current_height += random.choice([-1, 0, 1])
-                current_height = max(3, min(self.height - 3, current_height))  # clamp
-                evaluation_counter = 0
-            heights.append(current_height)
-            evaluation_counter += 1
-        # Generate caves at ground level
-        cave_openings = set()
-        for x in range(self.width):
-            if random.random() < cave_chance:
-                cave_openings.add(x)
+            # base biome height
+            if x < self.width * 0.33:
+                base = 20  # snow higher
+            elif x < self.width * 0.66:
+                base = 15  # forest mid
+            else:
+                base = 10  # desert low
+
+            # perlin noise gives smooth variation (-1 to 1)
+            noise_val = pnoise1(x * scale)
+
+            height = int(base + noise_val * amplitude)
+            height = max(5, min(self.height - 5, height))
+
+            heights.append(height)
+
         # Build blocks
         for x in range(self.width):
             col = []
             for y in range(self.height):
                 if y < heights[x]:
-                    col.append(0)  # air
-                elif y == heights[x]:
-                    if x in cave_openings:
-                        col.append(3)  # cave opening
+                    # improved slope generation: slopes for multi-block height differences
+                    left = heights[x - 1] if x > 0 else heights[x]
+                    right = heights[x + 1] if x < self.width - 1 else heights[x]
+
+                    diff_left = heights[x] - left
+                    diff_right = heights[x] - right
+
+                    # create multi-block slopes (up to 5 blocks)
+                    if diff_left > 0 and diff_left <= 5 and y >= heights[x] - diff_left:
+                        col.append(4)  # left slope
+                    elif diff_right > 0 and diff_right <= 5 and y >= heights[x] - diff_right:
+                        col.append(5)  # right slope
                     else:
-                        # Determine if this block is a visual slope
-                        left = heights[x - 1] if x > 0 else heights[x]
-                        right = heights[x + 1] if x < self.width - 1 else heights[x]
-                        if left < heights[x]:
-                            col.append(4)  # left slope (visual only)
-                        elif right < heights[x]:
-                            col.append(5)  # right slope (visual only)
-                        else:
-                            col.append(1)  # normal dirt
+                        col.append(0)  # air
+                elif y == heights[x]:
+                    col.append(1)  # always normal ground block
                 else:
                     col.append(1)  # dirt block below ground
             self.blocks.append(col)
@@ -84,11 +96,13 @@ class World:
             for y, block_type in enumerate(col):
                 block_pos = (x * self.block_size + offset.x, y * self.block_size + offset.y)
                 if block_type == 1:
-                    self.screen.blit(self.dirt, block_pos)
-                elif block_type == 3:
-                    self.screen.blit(self.cave, block_pos)
+                    # check if this is surface block
+                    if y == 0 or self.blocks[x][y-1] == 0:
+                        self.screen.blit(self.grass, block_pos)
+                    else:
+                        self.screen.blit(self.dirt, block_pos)
                 elif block_type == 4:
-                    self.screen.blit(self.slope_left, block_pos)
+                    self.screen.blit(self.grass_left_slope, block_pos)
                 elif block_type == 5:
-                    self.screen.blit(self.slope_right, block_pos)
+                    self.screen.blit(self.grass_right_slope, block_pos)
                 # block_type 0 is air, draw nothing

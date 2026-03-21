@@ -21,8 +21,34 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=pos)
 
         # collision 
-        
+        self.blocks = blocks  # list of [x[y]] for collision detection
+        self.block_size = 32
+    def is_solid(self, x, y):
+        if 0 <= x < len(self.blocks) and 0 <= y < len(self.blocks[0]):
+            return self.blocks[x][y] == 1
+        return False
+
+    def get_nearby_blocks(self):
+        blocks = []
+
+        start_x = int(self.rect.left // self.block_size)
+        end_x = int(self.rect.right // self.block_size)
+        start_y = int(self.rect.top // self.block_size)
+        end_y = int(self.rect.bottom // self.block_size)
+
+        for x in range(start_x, end_x + 1):
+            for y in range(start_y, end_y + 1):
+                if self.is_solid(x, y):
+                    blocks.append(pygame.Rect(
+                        x * self.block_size,
+                        y * self.block_size,
+                        self.block_size,
+                        self.block_size
+                    ))
+        return blocks
+
     def update(self):
+        print(self.position)
         keys = pygame.key.get_pressed()
 
         # horizontal movement
@@ -41,27 +67,44 @@ class Player(pygame.sprite.Sprite):
         # apply gravity
         self.velocity.y += self.gravity
 
-        # apply movement
-        self.position += self.velocity
+        # --- HORIZONTAL ---
+        self.position.x += self.velocity.x
+        self.rect.x = int(self.position.x)
+        self.check_collision("x")
 
-        # update rect
-        self.rect.topleft = (int(self.position.x), int(self.position.y))
-
-        # collision check
-        # ----   self.check_collision() ------
-
-    def check_collision(self):
+        # --- VERTICAL ---
+        self.position.y += self.velocity.y
+        self.rect.y = int(self.position.y)
         self.touching_ground = False
+        self.check_collision("y")
 
-        for block_surface, block_pos in self.blocks:
-            block_rect = pygame.Rect(block_pos[0], block_pos[1], 32, 32)
+    def check_collision(self, direction):
+        for block in self.get_nearby_blocks():
+            if self.rect.colliderect(block):
 
-            if self.rect.colliderect(block_rect):
-                if self.velocity.y > 0:  # falling
-                    self.rect.bottom = block_rect.top
-                    self.position.y = self.rect.y
-                    self.velocity.y = 0
-                    self.touching_ground = True
+                if direction == "y":
+                    if self.velocity.y > 0:  # falling
+                        self.rect.bottom = block.top
+                        self.position.y = self.rect.y
+                        self.velocity.y = 0
+                        self.touching_ground = True
 
-    def draw(self):
-        self.screen.blit(self.image, self.rect)
+                    elif self.velocity.y < 0:  # jumping
+                        self.rect.top = block.bottom
+                        self.position.y = self.rect.y
+                        self.velocity.y = 0
+
+                elif direction == "x":
+                    if self.velocity.x > 0:  # right
+                        self.rect.right = block.left
+                        self.position.x = self.rect.x
+
+                    elif self.velocity.x < 0:  # left
+                        self.rect.left = block.right
+                        self.position.x = self.rect.x
+
+    def draw(self, offset=pygame.math.Vector2(0, 0)):
+        self.screen.blit(self.image, (
+            int(self.rect.x - offset.x),
+            int(self.rect.y - offset.y)
+        ))

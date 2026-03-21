@@ -27,24 +27,17 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.running = False
 
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_a]:
-                self.offset.x += self.player.speed
-            if keys[pygame.K_d]:
-                self.offset.x -= self.player.speed
-            if keys[pygame.K_w]:
-                self.offset.y += self.player.speed
-            if keys[pygame.K_s]:
-                self.offset.y -= self.player.speed
+            # center camera on player
+            self.offset.x = self.player.rect.centerx - self.screen.get_width() // 2
+            self.offset.y = self.player.rect.centery - self.screen.get_height() // 2
 
             # update
             self.player.update()
 
             # draw
             self.screen.fill((0, 0, 0))
-            # --- Ignoring player for now ---
-            # self.player.draw()
             self.world.draw(offset=self.offset)
+            self.player.draw(self.offset)
             pygame.display.flip()
 
         pygame.quit()

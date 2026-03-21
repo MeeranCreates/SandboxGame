@@ -15,7 +15,7 @@ class World:
         self.block_size = 32
         self.width = 200
         self.height = 50
-        self.blocks = []  # 2D list: self.blocks[x][y] = block type
+        self.blocks = []  # 2D list: self.blocks[x][y] = block type offset
 
         # Block images dirt
         self.grass_flat = pygame.image.load("assets/images/grass_flat.png").convert_alpha()
@@ -107,7 +107,7 @@ class World:
     def draw(self, offset=pygame.math.Vector2(0, 0)):
         for x, col in enumerate(self.blocks):
             for y, block_type in enumerate(col):
-                block_pos = (x * self.block_size + offset.x, y * self.block_size + offset.y)
+                block_pos = (x * self.block_size - offset.x, y * self.block_size - offset.y)
                 if block_type == 1:
                     # check if this is surface block
                     if y == 0 or self.blocks[x][y-1] == 0:

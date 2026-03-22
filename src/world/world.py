@@ -1,13 +1,6 @@
 import pygame
-import math
 import random
 from noise import pnoise1
-
-# Placeholder Perlin noise function for hills
-def perlin_noise(x, scale=20, octaves=1, persistence=0.5, lacunarity=2.0, seed=0):
-    # This is a stub for Perlin noise. Replace with a real implementation for smooth hills.
-    random.seed(int(x * scale + seed))
-    return random.uniform(-1, 1)
 
 class World:
     def __init__(self, screen):
@@ -15,107 +8,138 @@ class World:
         self.block_size = 32
         self.width = 200
         self.height = 50
-        self.blocks = []  # 2D list: self.blocks[x][y] = block type
 
-        # Block images dirt
-        self.grass_flat = pygame.image.load("assets/images/grass_flat.png").convert_alpha()
-        self.grass = self.grass_flat
+        self.blocks = []
+        self.biomes = []
+
+        # textures
+        self.grass = pygame.image.load("assets/images/grass_flat.png").convert_alpha()
+        self.snow = pygame.image.load("assets/images/snow_flat.png").convert_alpha()
+        self.sand = pygame.image.load("assets/images/sand_flat.png").convert_alpha()
+
         self.dirt = pygame.image.load("assets/images/dirt.png").convert_alpha()
-        # Placeholder slope textures (visual only)
-        self.grass_left_slope = pygame.image.load("assets/images/grass_left_slope.png").convert_alpha()
-        self.grass_right_slope = pygame.image.load("assets/images/grass_right_slope.png").convert_alpha()
-        # Placeholder cave opening
-        self.cave = pygame.Surface((self.block_size, self.block_size))
-        self.cave.fill((40, 40, 40))
-        
+        self.sand_fill = pygame.image.load("assets/images/sand.png").convert_alpha()
+        self.stone = pygame.image.load("assets/images/stone.png").convert_alpha()
+
+        self.grass_left = pygame.image.load("assets/images/grass_left_slope.png").convert_alpha()
+        self.grass_right = pygame.image.load("assets/images/grass_right_slope.png").convert_alpha()
+        self.snow_left = pygame.image.load("assets/images/snow_left_slope.png").convert_alpha()
+        self.snow_right = pygame.image.load("assets/images/snow_right_slope.png").convert_alpha()
+        self.sand_left = pygame.image.load("assets/images/sand_left_slope.png").convert_alpha()
+        self.sand_right = pygame.image.load("assets/images/sand_right_slope.png").convert_alpha()
 
         self.generate()
 
     def generate(self):
-        # Terrain generation parameters
-        base_height = 12
-        ground_slope = 0.2  # how quickly ground trends up/down
-        hill_amplitude = 3
-        cave_chance = 0
-        slope_visual_range = 1  # how many blocks to look left/right for slope
-        seed = random.randint(0, 10000)
-
         self.blocks = []
+        self.biomes = []
         heights = []
-        current_height = base_height
-        evaluation_counter = 0
 
-        # --- BUILD HEIGHT MAP WITH PERLIN NOISE + BIOMES ---
-        scale = 0.01  # much smoother terrain
-        amplitude = 4
+        seed = random.randint(0, 9999)
+        scale = 0.01
+        amp = 4
 
         for x in range(self.width):
-            # base biome height
             if x < self.width * 0.33:
-                base = 20  # snow higher
+                base = 20
+                biome = "snow"
             elif x < self.width * 0.66:
-                base = 15  # forest mid
+                base = 15
+                biome = "forest"
             else:
-                base = 10  # desert low
+                base = 10
+                biome = "desert"
 
-            # perlin noise gives smooth variation (-1 to 1)
-            noise_val = pnoise1(x * scale + seed)
+            self.biomes.append(biome)
 
-            height = int(base + noise_val * amplitude)
-            height = max(5, min(self.height - 5, height))
+            h = int(base + pnoise1(x * scale + seed) * amp)
+            heights.append(max(5, min(self.height - 5, h)))
 
-            heights.append(height)
-
-        # --- SMOOTH HEIGHT DIFFERENCE (max step = 1) ---
+        # smooth
         for i in range(1, len(heights)):
             if heights[i] - heights[i-1] > 1:
                 heights[i] = heights[i-1] + 1
             elif heights[i] - heights[i-1] < -1:
                 heights[i] = heights[i-1] - 1
 
-        # --- EXTRA SMOOTHING (moving average) ---
-        smoothed = heights[:]
-        for i in range(2, len(heights) - 2):
-            smoothed[i] = int((heights[i-2] + heights[i-1] + heights[i] + heights[i+1] + heights[i+2]) / 5)
-        heights = smoothed
-
-        # Build blocks
+        # build
         for x in range(self.width):
             col = []
             for y in range(self.height):
-                if y < heights[x]:
-                    # improved slope generation: slopes for multi-block height differences
-                    left = heights[x - 1] if x > 0 else heights[x]
-                    right = heights[x + 1] if x < self.width - 1 else heights[x]
 
-                    diff_left = heights[x] - left
-                    diff_right = heights[x] - right
+                if y == heights[x] - 1:
+                    # slope goes on upper block
+                    left = heights[x-1] if x > 0 else heights[x]
+                    right = heights[x+1] if x < self.width - 1 else heights[x]
 
-                    # single block slope only (clean + stable)
-                    if diff_left == 1 and y == heights[x] - 1:
-                        col.append(4)
-                    elif diff_right == 1 and y == heights[x] - 1:
-                        col.append(5)
+                    if heights[x] - left == 1:
+                        col.append(4)  # left slope (visual on top)
+                    elif heights[x] - right == 1:
+                        col.append(5)  # right slope
                     else:
-                        col.append(0)  # air
+                        col.append(0)
+
+                elif y < heights[x]:
+                    col.append(0)
+
                 elif y == heights[x]:
-                    col.append(1)  # always normal ground block
+                    col.append(1)  # normal ground block
+
                 else:
-                    col.append(1)  # dirt block below ground
+                    if y > heights[x] + 5:
+                        col.append(2)
+                    else:
+                        col.append(1)
+
             self.blocks.append(col)
 
-    def draw(self, offset=pygame.math.Vector2(0, 0)):
-        for x, col in enumerate(self.blocks):
-            for y, block_type in enumerate(col):
-                block_pos = (x * self.block_size + offset.x, y * self.block_size + offset.y)
-                if block_type == 1:
-                    # check if this is surface block
+    def draw(self, offset):
+        for x in range(self.width):
+            for y in range(self.height):
+
+                block = self.blocks[x][y]
+                if block == 0:
+                    continue
+
+                draw_x = int(x * self.block_size - offset.x)
+                draw_y = int(y * self.block_size - offset.y)
+
+                biome = self.biomes[x]
+
+                if block == 1:
                     if y == 0 or self.blocks[x][y-1] == 0:
-                        self.screen.blit(self.grass, block_pos)
+                        if biome == "snow":
+                            self.screen.blit(self.snow, (draw_x, draw_y))
+                        elif biome == "desert":
+                            self.screen.blit(self.sand, (draw_x, draw_y))
+                        else:
+                            self.screen.blit(self.grass, (draw_x, draw_y))
                     else:
-                        self.screen.blit(self.dirt, block_pos)
-                elif block_type == 4:
-                    self.screen.blit(self.grass_left_slope, block_pos)
-                elif block_type == 5:
-                    self.screen.blit(self.grass_right_slope, block_pos)
-                # block_type 0 is air, draw nothing
+                        if biome == "desert":
+                            self.screen.blit(self.sand_fill, (draw_x, draw_y))
+                        else:
+                            self.screen.blit(self.dirt, (draw_x, draw_y))
+
+                elif block == 2:
+                    self.screen.blit(self.stone, (draw_x, draw_y))
+
+                elif block == 4:
+                    if biome == "snow":
+                        self.screen.blit(self.snow_left, (draw_x, draw_y))
+                    elif biome == "desert":
+                        self.screen.blit(self.sand_left, (draw_x, draw_y))
+                    else:
+                        self.screen.blit(self.grass_left, (draw_x, draw_y))
+
+                elif block == 5:
+                    if biome == "snow":
+                        self.screen.blit(self.snow_right, (draw_x, draw_y))
+                    elif biome == "desert":
+                        self.screen.blit(self.sand_right, (draw_x, draw_y))
+                    else:
+                        self.screen.blit(self.grass_right, (draw_x, draw_y))
+
+                # debug world boxes (green)
+                if block in [1, 2, 4, 5]:
+                    pygame.draw.rect(self.screen, (0, 255, 0),
+                                     (draw_x, draw_y, self.block_size, self.block_size), 1)

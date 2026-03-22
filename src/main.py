@@ -1,54 +1,44 @@
 import pygame
-from settings import Settings
 from player.player import Player
 from world.world import World
 
 class Game:
     def __init__(self):
         pygame.init()
-        pygame.display.set_caption("Sandbox:2D")
+
         self.screen = pygame.display.set_mode((800, 600))
+        pygame.display.set_caption("Sandbox 2D")
+
         self.clock = pygame.time.Clock()
         self.running = True
 
-        self.settings = Settings()
         self.world = World(self.screen)
-        self.player = Player(self.screen, pos=(100, 100), blocks=self.world.blocks)
+        self.player = Player(self.screen, self.world.blocks, (100, 100))
 
-        #Offset for spectating
         self.offset = pygame.math.Vector2(0, 0)
 
     def run(self):
-        self.world.generate()
         while self.running:
-            self.clock.tick(self.settings.fps)
+            self.clock.tick(60)
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.running = False
 
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_a]:
-                self.offset.x += self.player.speed
-            if keys[pygame.K_d]:
-                self.offset.x -= self.player.speed
-            if keys[pygame.K_w]:
-                self.offset.y += self.player.speed
-            if keys[pygame.K_s]:
-                self.offset.y -= self.player.speed
-
-            # update
             self.player.update()
 
-            # draw
+            # camera follow
+            self.offset.x = self.player.rect.centerx - self.screen.get_width() // 2
+            self.offset.y = self.player.rect.centery - self.screen.get_height() // 2
+
             self.screen.fill((0, 0, 0))
-            # --- Ignoring player for now ---
-            # self.player.draw()
-            self.world.draw(offset=self.offset)
+
+            self.world.draw(self.offset)
+            self.player.draw(self.offset)
+
             pygame.display.flip()
 
         pygame.quit()
 
 if __name__ == "__main__":
-    game = Game()
-    game.run()
+    Game().run()
